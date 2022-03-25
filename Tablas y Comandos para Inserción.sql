@@ -1,0 +1,310 @@
+DROP DATABASE IF EXISTS TPI_BDA;
+CREATE DATABASE TPI_BDA;
+USE TPI_BDA;
+
+CREATE TABLE IF NOT EXISTS Empleado(
+    cod_emple SMALLINT UNSIGNED NOT NULL PRIMARY KEY,
+    dni INT UNSIGNED NOT NULL,
+    nombre VARCHAR(45) NOT NULL,
+    titulacion VARCHAR(45),
+    experiencia TINYINT UNSIGNED DEFAULT 0,
+    direccion VARCHAR(150)
+);
+
+CREATE TABLE IF NOT EXISTS Jefe(
+    cod_emple SMALLINT UNSIGNED NOT NULL PRIMARY KEY,
+    CONSTRAINT FOREIGN KEY (cod_emple) REFERENCES Empleado(cod_emple)
+    ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS Informatico(
+    cod_emple SMALLINT UNSIGNED NOT NULL PRIMARY KEY,
+    CONSTRAINT FOREIGN KEY (cod_emple) REFERENCES Empleado(cod_emple)
+    ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS Analista (
+    cod_emple SMALLINT UNSIGNED NOT NULL PRIMARY KEY,
+    CONSTRAINT FOREIGN KEY (cod_emple) REFERENCES Informatico(cod_emple)
+    ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS Programador (
+    cod_emple SMALLINT UNSIGNED NOT NULL PRIMARY KEY,
+    lenguaje VARCHAR(20) NOT NULL,
+    CONSTRAINT FOREIGN KEY (cod_emple) REFERENCES Informatico(cod_emple)
+    ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS Proyecto(
+    cod_proy MEDIUMINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY ,
+    nombre VARCHAR(50) NOT NULL,
+    descrip VARCHAR(150) NOT NULL,
+    hs_estim SMALLINT UNSIGNED,
+    fecha_ini DATE NOT NULL,
+    fecha_fin DATE,
+    presup DECIMAL(10,2) NOT NULL,
+    jefe SMALLINT UNSIGNED NOT NULL,
+    horas_jefe SMALLINT UNSIGNED NOT NULL,
+    coste_jefe DECIMAL (8,2) NOT NULL,
+    CONSTRAINT FOREIGN KEY (jefe) REFERENCES Jefe(cod_emple)
+    ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS Relacion_Proyectos(
+    cod_proyecto1 MEDIUMINT UNSIGNED NOT NULL,
+    cod_proyecto2 MEDIUMINT UNSIGNED NOT NULL,
+    vinculo VARCHAR(150) NOT NULL,
+    PRIMARY KEY(cod_proyecto1, cod_proyecto2),
+    CONSTRAINT FOREIGN KEY (cod_proyecto1) REFERENCES Proyecto(cod_proy)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT FOREIGN KEY (cod_proyecto2) REFERENCES Proyecto(cod_proy)
+    ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS Trabaja (    
+    proyecto MEDIUMINT UNSIGNED NOT NULL,
+    informatico SMALLINT UNSIGNED NOT NULL,
+    num_horas SMALLINT UNSIGNED NOT NULL,
+    coste DECIMAL (8,2) NOT NULL,
+    PRIMARY KEY (informatico, proyecto),
+    CONSTRAINT FOREIGN KEY (informatico) REFERENCES Informatico(cod_emple)
+    ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT FOREIGN KEY (Proyecto) REFERENCES Proyecto(cod_proy)
+    ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS Gasto (
+    codigo INT UNSIGNED NOT NULL PRIMARY KEY,
+    proyecto MEDIUMINT UNSIGNED NOT NULL,
+    empleado SMALLINT UNSIGNED NOT NULL,
+    monto DECIMAL(20,2) NOT NULL,
+    fech_gasto DATE NOT NULL,
+    CONSTRAINT FOREIGN KEY (empleado) REFERENCES Empleado(cod_emple)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT FOREIGN KEY (proyecto) REFERENCES Proyecto(cod_proy)
+    ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS Fase(
+    cod_fase VARCHAR(7) NOT NULL COMMENT 'ejemplo f02.03',
+    cod_proy MEDIUMINT UNSIGNED NOT NULL, 
+    nombre VARCHAR(30) NOT NULL,
+    estado VARCHAR(10) NOT NULL,
+    num_fase TINYINT UNSIGNED NOT NULL COMMENT 'ejemplo: 2',
+    fecha_ini DATE NOT NULL,
+    fecha_fin DATE,
+    PRIMARY KEY(cod_fase,cod_proy),
+    CONSTRAINT FOREIGN KEY (cod_proy) REFERENCES Proyecto(cod_proy)
+    ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS Producto(
+    cod_prod MEDIUMINT UNSIGNED PRIMARY KEY NOT NULL,
+    nombre VARCHAR(45) NOT NULL,
+    descrip VARCHAR(150),
+    estado VARCHAR(15) NOT NULL,
+    analista SMALLINT UNSIGNED,
+    CONSTRAINT FOREIGN KEY (analista) REFERENCES Analista(cod_emple)
+    ON UPDATE CASCADE ON DELETE CASCADE    
+);
+
+CREATE TABLE IF NOT EXISTS Fase_Producto(
+    proyecto MEDIUMINT UNSIGNED NOT NULL,
+    fase VARCHAR(7) NOT NULL,
+    producto MEDIUMINT UNSIGNED NOT NULL,
+    PRIMARY KEY(proyecto,fase,producto),
+    CONSTRAINT FOREIGN KEY (proyecto) REFERENCES Fase(cod_proy)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT FOREIGN KEY (fase) REFERENCES Fase(cod_fase)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT FOREIGN KEY (producto) REFERENCES Producto(cod_prod)
+    ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS Fase_Producto_Informatico(
+    proyecto MEDIUMINT UNSIGNED NOT NULL,
+    fase VARCHAR(7) NOT NULL,
+    producto MEDIUMINT UNSIGNED NOT NULL, 
+    informatico SMALLINT UNSIGNED NOT NULL,
+    horas INT UNSIGNED NOT NULL,
+    PRIMARY KEY(proyecto,fase,producto,informatico),
+    CONSTRAINT FOREIGN KEY (proyecto) REFERENCES Fase(cod_proy)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT FOREIGN KEY (fase) REFERENCES Fase(cod_fase)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT FOREIGN KEY (producto) REFERENCES Producto(cod_prod)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT FOREIGN KEY (informatico) REFERENCES Informatico(cod_emple)
+    ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS Software(
+    codigo_prod MEDIUMINT UNSIGNED PRIMARY KEY, 
+    ver_sft VARCHAR(9) NOT NULL,
+    tipo VARCHAR(30) NOT NULL,
+    CONSTRAINT FOREIGN KEY (codigo_prod) REFERENCES Producto(cod_prod)
+    ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS Prototipo(
+    codigo_prod MEDIUMINT UNSIGNED PRIMARY KEY, 
+    ubicacion VARCHAR(50),
+    CONSTRAINT FOREIGN KEY (codigo_prod) REFERENCES Producto(cod_prod)
+    ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS Recurso(
+    cod_rec INT UNSIGNED PRIMARY KEY,
+    nombre VARCHAR(30),
+    descrip VARCHAR(150),
+    tipo VARCHAR(20)
+);
+
+CREATE TABLE IF NOT EXISTS Se_asigna(
+    cod_proy MEDIUMINT UNSIGNED NOT NULL,
+    cod_fase VARCHAR(7) NOT NULL,
+    cod_rec INT UNSIGNED,
+    fecha_ini DATE NOT NULL,
+    fecha_fin DATE,
+    PRIMARY KEY(cod_fase,cod_proy,cod_rec),
+    CONSTRAINT FOREIGN KEY (cod_proy) REFERENCES Fase(cod_proy)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT FOREIGN KEY (cod_fase) REFERENCES Fase(cod_fase)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT FOREIGN KEY (cod_rec) REFERENCES Recurso(cod_rec)
+    ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+-- Para realizar las inserciones movimos los archivos .csv a la carpeta de la maquina virtual especificada abajo, 
+-- Luego solamente hicimos la ejecución de los scripts
+
+SET AUTOCOMMIT=0;
+LOAD DATA INFILE '/var/lib/mysql-files/empleados.csv'
+INTO TABLE Empleado
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\n'
+IGNORE 1 LINES;
+COMMIT;
+
+SET AUTOCOMMIT=0;
+LOAD DATA INFILE '/var/lib/mysql-files/jefes.csv'
+INTO TABLE Jefe
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\n'
+IGNORE 1 LINES;
+COMMIT;
+
+SET AUTOCOMMIT=0;
+LOAD DATA INFILE '/var/lib/mysql-files/informaticos.csv'
+INTO TABLE Informatico
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\n'
+IGNORE 1 LINES;
+COMMIT;
+
+SET AUTOCOMMIT=0;
+LOAD DATA INFILE '/var/lib/mysql-files/analistas.csv'
+INTO TABLE Analista
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\n'
+IGNORE 1 LINES;
+COMMIT;
+
+SET AUTOCOMMIT=0;
+LOAD DATA INFILE '/var/lib/mysql-files/programadores.csv'
+INTO TABLE Programador
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\n'
+IGNORE 1 LINES;
+COMMIT;
+
+SET AUTOCOMMIT=0;
+LOAD DATA INFILE '/var/lib/mysql-files/proyectos.csv'
+INTO TABLE Proyecto
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\n'
+IGNORE 1 LINES
+(cod_proy, nombre, descrip, hs_estim, fecha_ini, @fecha_fin, presup, jefe, horas_jefe, coste_jefe)
+SET fecha_fin = NULLIF(@fecha_fin,'null');
+COMMIT;
+
+SET AUTOCOMMIT=0;
+LOAD DATA INFILE '/var/lib/mysql-files/trabaja.csv'
+INTO TABLE Trabaja
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\n'
+IGNORE 1 LINES;
+COMMIT;
+
+SET AUTOCOMMIT=0;
+LOAD DATA INFILE '/var/lib/mysql-files/gastos.csv'
+INTO TABLE Gasto
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\n'
+IGNORE 1 LINES;
+COMMIT;
+
+SET AUTOCOMMIT=0;
+LOAD DATA INFILE '/var/lib/mysql-files/fases.csv'
+INTO TABLE Fase
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\n'
+IGNORE 1 LINES;
+COMMIT;
+
+SET AUTOCOMMIT=0;
+LOAD DATA INFILE '/var/lib/mysql-files/productos.csv'
+INTO TABLE Producto
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\n'
+IGNORE 1 LINES;
+COMMIT;
+
+SET AUTOCOMMIT=0;
+LOAD DATA INFILE '/var/lib/mysql-files/prototipos.csv'
+INTO TABLE Prototipo
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\n'
+IGNORE 1 LINES;
+COMMIT;
+
+SET AUTOCOMMIT=0;
+LOAD DATA INFILE '/var/lib/mysql-files/softwares.csv'
+INTO TABLE Software
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\n'
+IGNORE 1 LINES;
+COMMIT;
+
+SET AUTOCOMMIT=0;
+LOAD DATA INFILE '/var/lib/mysql-files/fase producto.csv'
+INTO TABLE Fase_Producto
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\n'
+IGNORE 1 LINES;
+COMMIT;
+
+SET AUTOCOMMIT=0;
+LOAD DATA INFILE '/var/lib/mysql-files/fase producto info.csv'
+INTO TABLE Fase_Producto_Informatico
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\n'
+IGNORE 1 LINES;
+COMMIT;
+
+SET AUTOCOMMIT=0;
+LOAD DATA INFILE '/var/lib/mysql-files/recursos.csv'
+INTO TABLE Recurso
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\n'
+IGNORE 1 LINES;
+COMMIT;
+
+SET AUTOCOMMIT=0;
+LOAD DATA INFILE '/var/lib/mysql-files/asignado.csv'
+INTO TABLE Se_asigna
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\n'
+IGNORE 1 LINES;
+COMMIT;
